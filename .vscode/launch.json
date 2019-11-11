@@ -1,0 +1,12 @@
+{
+    "version": "1.0.0",
+    "configurations": [
+        {
+            "type": "node",
+            "runtimeVersion": "10.13.0",
+            "request": "launch",
+            "name": "Launch",
+            "program": "${workspaceFolder}"
+        }
+    ]
+}
