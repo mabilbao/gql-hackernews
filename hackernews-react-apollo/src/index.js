@@ -5,6 +5,10 @@ import App from './components/App';
 import * as serviceWorker from './serviceWorker';
 import { BrowserRouter } from 'react-router-dom'
 
+import { split } from 'apollo-link'
+import { WebSocketLink } from 'apollo-link-ws'
+import { getMainDefinition } from 'apollo-utilities'
+
 import { ApolloProvider } from 'react-apollo'
 import { ApolloClient } from 'apollo-client'
 import { createHttpLink } from 'apollo-link-http'
@@ -13,10 +17,10 @@ import { setContext } from 'apollo-link-context'
 import { AUTH_TOKEN } from './constants';
 
 
+// HTTP Connection with authentication
 const httpLink = createHttpLink({
     uri: 'http://localhost:4000'
 })
-
 const authLink = setContext((_, { headers }) => {
   const token = localStorage.getItem(AUTH_TOKEN)
   return {
@@ -27,10 +31,32 @@ const authLink = setContext((_, { headers }) => {
   }
 })
 
+// Websocket Connection with authentication
+const wsLink = new WebSocketLink({
+  uri: `ws://localhost:4000`,
+  options: {
+    reconnect: true,
+    connectionParams: {
+      authToken: localStorage.getItem(AUTH_TOKEN),
+    }
+  }
+})
+
+// Mix both connections
+const link = split(
+  ({ query }) => {
+    const { kind, operation } = getMainDefinition(query)
+    return kind === 'OperationDefinition' && operation === 'subscription'
+  },
+  wsLink,
+  authLink.concat(httpLink)
+)
+
+// Instannce Apollo Client
 const client = new ApolloClient({
-    link: authLink.concat(httpLink),
-    cache: new InMemoryCache(),
-    connectToDevTools: true
+  link,
+  cache: new InMemoryCache(),
+  connectToDevTools: true
 })
 
 ReactDOM.render(
